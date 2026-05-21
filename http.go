@@ -285,7 +285,7 @@ func makeCall(ctx context.Context, request *apiRequest, headersFunc HttpHeaderFu
 }
 
 func AppendHttpQueryParam(queryParams, key, value string) string {
-	return fmt.Sprintf(appendQueryParamPattern, queryParams, HttpQueryParamSep(strings.Contains(queryParams, QueryParamFirstSep)), key, value)
+	return fmt.Sprintf(appendQueryParamPattern, queryParams, HttpQueryParamSep(strings.Contains(queryParams, QueryParamFirstSep)), url.QueryEscape(key), url.QueryEscape(value))
 }
 
 func HttpQueryParamSep(appended bool) string {
