@@ -50,6 +50,20 @@ func TestAppendHttpQueryParam(t *testing.T) {
 			value:       "bar",
 			expected:    "?test=new&new=test&foo=bar",
 		},
+		{
+			description: "TestAppendHttpQueryParam3",
+			queryParams: "",
+			key:         "foo",
+			value:       "hello world&bad=injected",
+			expected:    "?foo=hello+world%26bad%3Dinjected",
+		},
+		{
+			description: "TestAppendHttpQueryParam4",
+			queryParams: "?a=1",
+			key:         "foo bar",
+			value:       "baz=qux",
+			expected:    "?a=1&foo+bar=baz%3Dqux",
+		},
 	}
 
 	for _, tt := range cases {
