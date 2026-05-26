@@ -21,7 +21,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net"
 	"net/http"
 	"net/url"
@@ -246,8 +246,8 @@ func makeCall(ctx context.Context, request *apiRequest, headersFunc HttpHeaderFu
 		return response
 	}
 
-	defer res.Body.Close()
-	body, err := ioutil.ReadAll(res.Body)
+	defer func() { _ = res.Body.Close() }()
+	body, err := io.ReadAll(res.Body)
 	if err != nil {
 		response.Error = &ApiError{
 			Message:      err.Error(),

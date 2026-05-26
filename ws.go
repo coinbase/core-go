@@ -25,7 +25,7 @@ import (
 	"github.com/gorilla/websocket"
 )
 
-var defaultDialierHandshakeTimeoutInSeconds = 10 * time.Second
+var defaultDialerHandshakeTimeout = 10 * time.Second
 
 // ListenForWebSocketTextMessages is a blocking call that listens for messges. If there is an
 // error, it exits and the error is returned. If a close message is received, the function
@@ -81,7 +81,7 @@ func DialWebSocket(ctx context.Context, config DialerConfig) (*WebSocketConnecti
 	}
 
 	if dialer.HandshakeTimeout <= 0 {
-		dialer.HandshakeTimeout = defaultDialierHandshakeTimeoutInSeconds
+		dialer.HandshakeTimeout = defaultDialerHandshakeTimeout
 	}
 
 	c, _, err := dialer.DialContext(ctx, u.String(), config.RequestHeader)
