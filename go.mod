@@ -1,4 +1,4 @@
-module github.com/coinbase-samples/core-go
+module github.com/coinbase/core-go
 
 go 1.25.0
 

@@ -1,7 +1,7 @@
 # Core Package README
 
-[![GoDoc](https://godoc.org/github.com/coinbase-samples/core-go?status.svg)](https://godoc.org/github.com/coinbase-samples/core-go)
-[![Go Report Card](https://goreportcard.com/badge/coinbase-samples/core-go)](https://goreportcard.com/report/coinbase-samples/core-go)
+[![GoDoc](https://godoc.org/github.com/coinbase/core-go?status.svg)](https://godoc.org/github.com/coinbase/core-go)
+[![Go Report Card](https://goreportcard.com/badge/coinbase/core-go)](https://goreportcard.com/report/coinbase/core-go)
 
 ## Overview
 
@@ -9,10 +9,10 @@ The core package provides a centralized and reusable implementation for making H
 
 ## Installation
 
-The core package is already integrated with the [Coinbase Prime](https://github.com/coinbase-samples/prime-sdk-go) and [Coinbase International Exchange (INTX)](https://github.com/coinbase-samples/intx-sdk-go) Go SDKs. To manually install the core package, use the following command:
+The core package is already integrated with the [Coinbase Prime](https://github.com/coinbase/prime-sdk-go) and [Coinbase International Exchange (INTX)](https://github.com/coinbase-samples/intx-sdk-go) Go SDKs. To manually install the core package, use the following command:
 
 ```
-go get github.com/coinbase-samples/core-go
+go get github.com/coinbase/core-go
 ```
 
 ## Usage
@@ -20,7 +20,7 @@ go get github.com/coinbase-samples/core-go
 To use the core package, import it into your project:
 
 ```go
-import "github.com/coinbase-samples/core-go"
+import "github.com/coinbase/core-go"
 ```
 
 Then, create a new instance of the `Client` struct:
@@ -35,7 +35,7 @@ If you discover a security vulnerability within this SDK, please see our [Securi
 
 ## 📧 Contact
 
-- [GitHub Issues](https://github.com/coinbase-samples/core-go/issues)
+- [GitHub Issues](https://github.com/coinbase/core-go/issues)
 
 ## License
 
