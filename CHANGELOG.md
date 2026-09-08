@@ -12,6 +12,10 @@
 - `ErrorParserFunc`: optional hook for unexpected HTTP statuses. Transport failures (invalid URL, `Do`, body read) remain `*ApiError`.
 - `headersFunc` is nil-safe.
 
+### Security
+
+- Bump `golang.org/x/net` to v0.55.0 ([CVE-2026-25680](https://github.com/advisories/GHSA-5cv4-jp36-h3mw) / Dependabot alert #1).
+
 ## [0.3.0] - 2026-05-29
 
 ### Changed
