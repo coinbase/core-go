@@ -83,7 +83,6 @@ func DefaultHttpClient() (http.Client, error) {
 		Proxy:                 http.ProxyFromEnvironment,
 		DialContext: (&net.Dialer{
 			KeepAlive: 30 * time.Second,
-			DualStack: true,
 			Timeout:   5 * time.Second,
 		}).DialContext,
 		MaxIdleConns:          50,
