@@ -43,6 +43,10 @@ const (
 
 type HttpHeaderFunc func(req *http.Request, path string, body []byte, client RestClient, t time.Time)
 
+// ErrorParserFunc turns an unexpected HTTP response into an error.
+// A nil parser preserves the default *ApiError unmarshal of {"message": "..."}.
+type ErrorParserFunc func(body []byte, statusCode int, expected []int, callUrl string) error
+
 type apiRequest struct {
 	Path                    string
 	Query                   string
@@ -50,6 +54,7 @@ type apiRequest struct {
 	Body                    []byte
 	ExpectedHttpStatusCodes []int
 	Client                  RestClient
+	ParseError              ErrorParserFunc
 }
 
 type ApiResponse struct {
@@ -57,7 +62,7 @@ type ApiResponse struct {
 	Body           []byte
 	HttpStatusCode int
 	HttpStatusMsg  string
-	Error          *ApiError
+	Error          error
 }
 
 type ApiError struct {
@@ -78,7 +83,6 @@ func DefaultHttpClient() (http.Client, error) {
 		Proxy:                 http.ProxyFromEnvironment,
 		DialContext: (&net.Dialer{
 			KeepAlive: 30 * time.Second,
-			DualStack: true,
 			Timeout:   5 * time.Second,
 		}).DialContext,
 		MaxIdleConns:          50,
@@ -106,8 +110,9 @@ func HttpPost(
 	request,
 	response interface{},
 	headersFunc HttpHeaderFunc,
+	parseError ErrorParserFunc,
 ) error {
-	return call(ctx, client, path, query, http.MethodPost, expectedHttpStatusCodes, request, response, headersFunc)
+	return call(ctx, client, path, query, http.MethodPost, expectedHttpStatusCodes, request, response, headersFunc, parseError)
 }
 
 func HttpGet(
@@ -119,8 +124,9 @@ func HttpGet(
 	request,
 	response interface{},
 	headersFunc HttpHeaderFunc,
+	parseError ErrorParserFunc,
 ) error {
-	return call(ctx, client, path, query, http.MethodGet, expectedHttpStatusCodes, request, response, headersFunc)
+	return call(ctx, client, path, query, http.MethodGet, expectedHttpStatusCodes, request, response, headersFunc, parseError)
 }
 
 func HttpPut(
@@ -132,8 +138,9 @@ func HttpPut(
 	request,
 	response interface{},
 	headersFunc HttpHeaderFunc,
+	parseError ErrorParserFunc,
 ) error {
-	return call(ctx, client, path, query, http.MethodPut, expectedHttpStatusCodes, request, response, headersFunc)
+	return call(ctx, client, path, query, http.MethodPut, expectedHttpStatusCodes, request, response, headersFunc, parseError)
 }
 
 func HttpDelete(
@@ -145,8 +152,9 @@ func HttpDelete(
 	request,
 	response interface{},
 	headersFunc HttpHeaderFunc,
+	parseError ErrorParserFunc,
 ) error {
-	return call(ctx, client, path, query, http.MethodDelete, expectedHttpStatusCodes, request, response, headersFunc)
+	return call(ctx, client, path, query, http.MethodDelete, expectedHttpStatusCodes, request, response, headersFunc, parseError)
 }
 
 func HttpPatch(
@@ -158,8 +166,9 @@ func HttpPatch(
 	request,
 	response interface{},
 	headersFunc HttpHeaderFunc,
+	parseError ErrorParserFunc,
 ) error {
-	return call(ctx, client, path, query, http.MethodPatch, expectedHttpStatusCodes, request, response, headersFunc)
+	return call(ctx, client, path, query, http.MethodPatch, expectedHttpStatusCodes, request, response, headersFunc, parseError)
 }
 
 func call(
@@ -172,6 +181,7 @@ func call(
 	request,
 	response interface{},
 	headersFunc HttpHeaderFunc,
+	parseError ErrorParserFunc,
 ) error {
 
 	body, err := json.Marshal(request)
@@ -188,6 +198,7 @@ func call(
 			Body:                    body,
 			ExpectedHttpStatusCodes: expectedHttpStatusCodes,
 			Client:                  client,
+			ParseError:              parseError,
 		},
 		headersFunc,
 	)
@@ -235,7 +246,9 @@ func makeCall(ctx context.Context, request *apiRequest, headersFunc HttpHeaderFu
 		return response
 	}
 
-	headersFunc(req, parsedUrl.Path, requestBody, request.Client, time.Now())
+	if headersFunc != nil {
+		headersFunc(req, parsedUrl.Path, requestBody, request.Client, time.Now())
+	}
 
 	res, err := request.Client.HttpClient().Do(req)
 	if err != nil {
@@ -269,6 +282,11 @@ func makeCall(ctx context.Context, request *apiRequest, headersFunc HttpHeaderFu
 	}
 
 	if !isExpectedStatusCode {
+		if request.ParseError != nil {
+			response.Error = request.ParseError(body, res.StatusCode, request.ExpectedHttpStatusCodes, callUrl)
+			return response
+		}
+
 		var apiErr ApiError
 		if jsonErr := json.Unmarshal(response.Body, &apiErr); jsonErr != nil {
 			apiErr.Message = string(body)

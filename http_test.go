@@ -17,8 +17,98 @@
 package core
 
 import (
+	"context"
+	"encoding/json"
+	"errors"
+	"fmt"
+	"net/http"
+	"net/http/httptest"
 	"testing"
 )
+
+type testRestClient struct {
+	baseUrl    string
+	httpClient *http.Client
+}
+
+func (c *testRestClient) HttpBaseUrl() string      { return c.baseUrl }
+func (c *testRestClient) HttpClient() *http.Client { return c.httpClient }
+
+func newTestRestClient(t *testing.T, handler http.HandlerFunc) RestClient {
+	t.Helper()
+	srv := httptest.NewServer(handler)
+	t.Cleanup(srv.Close)
+	return &testRestClient{baseUrl: srv.URL, httpClient: srv.Client()}
+}
+
+func TestHttpGetSuccess(t *testing.T) {
+	cl := newTestRestClient(t, func(w http.ResponseWriter, r *http.Request) {
+		_ = json.NewEncoder(w).Encode(map[string]bool{"ok": true})
+	})
+
+	var resp struct {
+		OK bool `json:"ok"`
+	}
+	if err := HttpGet(context.Background(), cl, "/ok", EmptyQueryParams, []int{http.StatusOK}, struct{}{}, &resp, nil, nil); err != nil {
+		t.Fatal(err)
+	}
+	if !resp.OK {
+		t.Fatal("expected ok")
+	}
+}
+
+func TestHttpGetNilParserReturnsApiError(t *testing.T) {
+	cl := newTestRestClient(t, func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusBadRequest)
+		_ = json.NewEncoder(w).Encode(map[string]string{"message": "bad request"})
+	})
+
+	var resp struct{}
+	err := HttpGet(context.Background(), cl, "/fail", EmptyQueryParams, []int{http.StatusOK}, struct{}{}, &resp, nil, nil)
+	if err == nil {
+		t.Fatal("expected error")
+	}
+	var apiErr *ApiError
+	if !errors.As(err, &apiErr) {
+		t.Fatalf("expected *ApiError, got %T (%v)", err, err)
+	}
+	if apiErr.Message != "bad request" {
+		t.Errorf("message = %q", apiErr.Message)
+	}
+	if apiErr.CodeReceived != http.StatusBadRequest {
+		t.Errorf("status = %d", apiErr.CodeReceived)
+	}
+}
+
+type customParseError struct {
+	msg string
+}
+
+func (e *customParseError) Error() string { return e.msg }
+
+func TestHttpGetCustomParserReturnedAsIs(t *testing.T) {
+	cl := newTestRestClient(t, func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusNotFound)
+		_, _ = w.Write([]byte(`{"code":"NOT_FOUND"}`))
+	})
+
+	parser := func(body []byte, statusCode int, expected []int, callUrl string) error {
+		return &customParseError{msg: fmt.Sprintf("%d:%s", statusCode, string(body))}
+	}
+
+	var resp struct{}
+	err := HttpGet(context.Background(), cl, "/x", EmptyQueryParams, []int{http.StatusOK}, struct{}{}, &resp, nil, parser)
+	if err == nil {
+		t.Fatal("expected error")
+	}
+	var custom *customParseError
+	if !errors.As(err, &custom) {
+		t.Fatalf("expected *customParseError, got %T (%v)", err, err)
+	}
+	if custom.msg != `404:{"code":"NOT_FOUND"}` {
+		t.Errorf("msg = %q", custom.msg)
+	}
+}
 
 func TestAppendHttpQueryParam(t *testing.T) {
 
